@@ -46,6 +46,8 @@ class Button:
                 self.property.color = "active"
             if self.handle.on_mouse(event, self.property.rects.rect) and not self.click:
                 self.property.color = "on_mouse"
+            elif not self.click:
+                self.property.color = "inactive"
 
     def update(self):
         self.property.rects.update()
@@ -58,9 +60,10 @@ class Button:
             db.view.layer.append(db.view.View("text", self.property.fontsize, self.property.color, pygame.Rect(self.property.rects.rect.x + 5, self.property.rects.rect.y, self.property.rects.rect.w, self.property.rects.rect.h), self.property.layer, self.property.text, 2))
             if self.property.is_frame:
                 db.view.layer.append(db.view.View("rect", self.property.fontsize, self.property.color, self.property.rects.rect, self.property.layer, self.property.text, 2))
-    def get(self):
+    def get(self, only_confirm = False):
         if self.click:
-            self.click = False
+            if only_confirm == False:
+                self.click = False
             return True
         return False
     def change_click_get(self):
@@ -94,6 +97,10 @@ class ButtonSwitch:
                     self.property.color = "inactive"
             if self.handle.on_mouse(event, self.property.rects.rect) and not self.click:
                 self.property.color = "on_mouse"
+            elif not self.click:
+                self.property.color = "inactive"
+        elif not self.click:
+            self.property.color = "inactive"
 
     def update(self):
         self.property.rects.update()
@@ -103,8 +110,6 @@ class ButtonSwitch:
             if self.property.is_frame:
                 db.view.layer.append(db.view.View("rect", self.property.fontsize, self.property.color, self.property.rects.rect, self.property.layer, self.property.text, 2))
     def get(self, change_visible_False = False):
-        if change_visible_False:
-            self.click = False
         return self.click
     def unclick(self):
         self.click = False
@@ -173,7 +178,9 @@ class CombineBox:
         for i in range(len(elements)):
             self.children_btn.append(Button(pygame.Rect(self.property.rects.rect.x, self.property.rects.rect.y + (i * (self.property.rects.rect.h + 10)) + (self.property.rects.rect.h + 10), self.max, self.property.rects.rect.h), self.property.color, self.property.layer, self.property.visible, self.property.fontsize, elements[i], self.property.is_frame))
         self.frame = pygame.Rect(self.children_btn[0].property.rects.rect.x, self.children_btn[0].property.rects.rect.y, self.max, self.children_btn[len(self.children_btn) - 1].property.rects.rect.y + self.children_btn[len(self.children_btn) - 1].property.rects.rect.h - self.children_btn[0].property.rects.rect.y)    
-
+        for children in self.children_btn:
+            children.property.visible = False # 全ての子を非表示にする
+        self.parent_btn.unclick() # チェックを外す
     def handle_event(self, event):
         if self.property.visible:
             for children in self.children_btn:
@@ -181,8 +188,12 @@ class CombineBox:
             self.frame = pygame.Rect(self.children_btn[0].property.rects.rect.x, self.children_btn[0].property.rects.rect.y, self.max, self.children_btn[len(self.children_btn) - 1].property.rects.rect.y + self.children_btn[len(self.children_btn) - 1].property.rects.rect.h - self.children_btn[0].property.rects.rect.y)
             if self.handle.other_click(event, self.frame):
                 for children in self.children_btn:
-                    children.property.visible = False
-                self.parent_btn.unclick()
+                    children.property.visible = False # 全ての子を非表示にする
+                self.parent_btn.unclick() # チェックを外す
+            if self.handle.click(event, self.frame):
+                for children in self.children_btn:
+                    children.property.visible = False # 全ての子を非表示にする
+                self.parent_btn.unclick() # チェックを外す
         if self.property.visible or self.parent_visible:
             self.parent_btn.handle_event(event) 
 
@@ -211,8 +222,9 @@ class CombineBox:
         for children in self.children_btn:
             if children.get():
                 if only_children_name:
-                    return children.property.text
-                return self.property.text
+                    return self.property.text, children.property.text
+                return self.property.text, children.property.text
+        return False, False
 
 class MenuBar:
     def __init__(self, rect, color, layer, visible, fontsize, text, elements = []):
@@ -249,14 +261,14 @@ class MenuBar:
     def draw(self):
         for com in self.combine_boxs:
             com.draw()
+
     def get(self):
         """クリックされたコンボボックスの親の名前と子の名前を出力します、クリック検知がされなかった場合はFalseが返されます"""
         for com in self.combine_boxs:
-            parent_name, child_name = com.get(True)
+            parent_name, child_name = com.get()
             if parent_name != False:
-                print(parent_name + ", " + child_name)
                 return parent_name, child_name
-        return False
+        return False, False
 class Property:
     def __init__(self, rect, color, layer, visible, fontsize, text = "", is_frame = False):
         """ここのis_frameは全体のことを指す"""
@@ -364,6 +376,9 @@ def main():
         for event in pygame.event.get():
             menu.handle_event(event)
         menu.update()
+        p, c = menu.get()
+        if p != False:
+            print(p + ", " + c)
         menu.draw()
         db.view.draw()
         clock.tick(60)

@@ -30,10 +30,10 @@ class DataBase:
             self.layer = []
             """layerにView関数を追加してください"""
             self.default_screen = self.Screen(1980, 1080)
-            self.screen = pygame.display.set_mode((self.default_screen.w, self.default_screen.h)) 
+            self.screen = pygame.display.set_mode((self.default_screen.w, self.default_screen.h), pygame.FULLSCREEN) 
             self.parent = p
         def draw(self):
-            """draw関数はback last middle first順でscreenに表示する、関数実行後layerをリセットする"""
+            """draw関数はscreenに表示する、関数実行後layerをリセットする"""
             self.screen.fill((30, 30, 30))
             for layer_index in range(100):
                 for i in range(len(self.layer)):
@@ -181,6 +181,7 @@ class DataBase:
             self.click = self.XandY(-1, -1)
             self.map_len = self.XandY(9, 9)
             self.nav = self.Navigator(self)
+            self.map_margin = 5
             self.map = []
             self.create_map()
             self.mapbox = []
