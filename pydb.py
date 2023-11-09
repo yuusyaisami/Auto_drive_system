@@ -79,6 +79,7 @@ class DataBase:
         def __init__(self):
             self.inactive = pygame.Color('lightskyblue2')
             self.active = pygame.Color('dodgerblue2')
+            self.track = pygame.Color("dodgerblue")
             self.on_mouse = pygame.Color('lightskyblue3')
             self.alpha = pygame.Color(50, 50, 50)
             self.background = pygame.Color(30,30,30)
@@ -104,6 +105,8 @@ class DataBase:
                 return self.goal
             elif name == "start":
                 return self.start
+            elif name == "track":
+                return self.track
             else:
                 return pygame.Color(name)
         def convert_str_to_colorcode(str) -> int:
@@ -176,11 +179,12 @@ class DataBase:
             """ラズベリーパイのみ"""
             self.car = self.Player(1,2,0)
             self.goal = self.XandY(4, 3)
-            self.start = self.XandY(2, 1)
             self.rightclick = self.XandY(-1, -1)
             self.click = self.XandY(-1, -1)
             self.map_len = self.XandY(9, 9)
-            self.nav = self.Navigator(self)
+            self.nav = self.Navigator(self) 
+            self.map_box_size = 20
+            self.map_box_margin = 10
             self.map = []
             self.create_map()
             self.mapbox = []
@@ -209,6 +213,10 @@ class DataBase:
             for i in range(self.map_len.x):
                 rowsline.append(99)
             self.map = np.vstack((self.map, rowsline))
+        def match_goal(self, arg_x, arg_y):
+            return arg_x == self.goal.x and arg_y == self.goal.y
+        def match_start(self, arg_x, arg_y):
+            return arg_x == self.car.x and arg_y == self.car.y
         class Player:
             def __init__(self, x, y, d):
                 self.x = x
@@ -268,7 +276,8 @@ class DataBase:
             #数値流し
             def MazeWaterValue(self):
                 if self.DebugDriver1(99, 0) == -1:
-                    return -1
+                    print("前方が壁です")
+                    return True
                 nx, ny = self.SearchDirection()
                 self.driver.map[ny][nx] = count = 2
                 self.driver.map[self.driver.car.y][self.driver.car.x] = 99
@@ -295,9 +304,10 @@ class DataBase:
                         else:
                             flag = False
                     self.driver.map[self.driver.car.y][self.driver.car.x] = 1
+                    return False
                 except:
                     print("error")
-                    return -1
+                    return True
             # 最短距離
             def MazeShortestRoute(self):
                 gx = self.driver.goal.x
