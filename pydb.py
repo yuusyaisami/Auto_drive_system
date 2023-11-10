@@ -182,14 +182,9 @@ class DataBase:
             self.rightclick = self.XandY(-1, -1)
             self.click = self.XandY(-1, -1)
             self.map_len = self.XandY(9, 9)
-<<<<<<< HEAD
             self.nav = self.Navigator(self) 
             self.map_box_size = 20
             self.map_box_margin = 10
-=======
-            self.nav = self.Navigator(self)
-            self.map_margin = 5
->>>>>>> 9fa2c2b8863933e4cda5a17b7660a9788a018717
             self.map = []
             self.create_map()
             self.mapbox = []

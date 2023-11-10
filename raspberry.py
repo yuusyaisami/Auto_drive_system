@@ -343,9 +343,8 @@ class DriverMap:
             if not self.car.Determined:
                 db.driver.car.x, db.driver.car.y, self.direction, db.driver.car.direction = db.driver.nav.DriverDirection(db.driver.map, db.driver) # 次の移動先とその方向
                 # 移動が終わったら実行する
-                if self.direction == -2:
-                    db.driver.map = db.driver.nav.Reset()
-                    db.driver.map[db.driver.y][db.driver.x] = 1 # 自身の位置
+                if self.direction == -1:
+                    db.driver.nav.Reset()
                     self.run = False # 処理終了
                 else:
                     self.car.initial_Determined = True

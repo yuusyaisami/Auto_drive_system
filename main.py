@@ -31,6 +31,18 @@ class MainScene:
         parent, child = self.menu.get()
         if parent == "実行" and child == "Run":
             self.driver_item.Run()
+        if parent == "編集" and child == "壁" and db.driver.click.x != -1:
+            db.driver.map[db.driver.click.y][db.driver.click.x] = 99
+        if parent == "編集" and child == "道" and db.driver.click.x != -1:
+            db.driver.map[db.driver.click.y][db.driver.click.x] = 0
+        if parent == "編集" and child == "ゴール" and db.driver.click.x != -1:
+            db.driver.goal.x = db.driver.click.x
+            db.driver.goal.y = db.driver.click.y
+        if parent == "編集" and child == "スタート" and db.driver.click.x != -1:
+            db.driver.car.x = db.driver.click.x
+            db.driver.car.y = db.driver.click.y
+            
+        
     def draw(self):
         for i in self.items:
             i.draw()
