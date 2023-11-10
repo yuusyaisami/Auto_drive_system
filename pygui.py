@@ -276,7 +276,7 @@ class InputBox:
                 db.view.layer.append(db.view.View("text", self.common.fontsize, self.common.color, pygame.Rect(self.common.rects.rect.x + 5, self.common.rects.rect.y + 2, self.common.rects.rect.w,self.common.rects.rect.h), self.common.layer, self.text))
             db.view.layer.append(db.view.View("rect", self.common.fontsize, self.common.color, self.common.rects.rect, self.common.layer, line_width=0))
 class CombineBox:
-    def __init__(self, rect, color, layer, visible, fontsize, text = "", elements = ["a", "b", "c"], parent_frame = True, child_frame = True, ):
+    def __init__(self, rect, color, layer, visible, fontsize, text = "", elements = ["a", "b", "c"], parent_frame = True, child_frame = True, cant_edit = False):
         """textは親の名前 elementsはchildの名前"""
         self.common = Common(rect, color, layer, visible, fontsize, text)
         self.parent_btn = ButtonSwitch(rect, color, layer, visible, fontsize, text, is_frame=parent_frame)
@@ -319,12 +319,15 @@ class CombineBox:
                 self.parent_btn.unclick()
             self.parent_btn.update()
             if self.parent_btn.clicked():
+                if self.parent_btn.click:
+                    db.driver.can_edit = False
                 for child in self.child_btn:
                     child.common.visible = self.parent_btn.click
             if self.timer.Do(2):
                 for child in self.child_btn:
                     child.common.visible = False
                 self.parent_btn.unclick()
+                db.driver.can_edit = True
                 self.timer.reset(False)
     def draw(self):
         if self.common.visible:
@@ -341,7 +344,7 @@ class CombineBox:
             if child.clicked():
                 return self.common.text, child.common.text
         return False, False
-            
+
 class MenuBar:
     def __init__(self, rect, color, layer, visible, fontsize, text, elements = [], parent_frame = False, child_frame = False):
         self.common = Common(rect, color, layer, visible, fontsize, text, parent_frame)
@@ -479,14 +482,14 @@ class Box:
 
     def handle_event(self, event):
         if self.common.visible:
-            if handle.click(event, self.common.rects.rect, "left"):
+            if handle.click(event, self.common.rects.rect, "left") and db.driver.can_edit:
                 db.driver.click.x = self.map.x
                 db.driver.click.y = self.map.y
             if handle.click(event, self.common.rects.rect, "right"):
                 db.driver.rightclick.x = self.map.x
                 db.driver.rightclick.y = self.map.y
-            elif handle.other_click(event, self.common.rects.rect) and self.check_select_me():
-                db.driver.click.x = db.driver.click.y = -1
+            #elif handle.other_click(event, self.common.rects.rect) and self.check_select_me():
+            #    db.driver.click.x = db.driver.click.y = -1
     def check_select_me(self):
         return db.driver.click.x == self.map.x and db.driver.click.y == self.map.y
     def check_selectbox(self):
@@ -556,11 +559,13 @@ class DriverMap:
                 # 移動が終わったら実行する
                 if self.direction == -1:
                     db.driver.nav.Reset()
-                    db.driver.map[db.driver.car.y][db.driver.car.x] = 1 # 自身の位置
+                    db.driver.goal.x = db.driver.goal.y = -1
+                    db.driver.can_edit = True
                     self.run = False # 処理終了
                     self.RunTime.reset(False)
     def Run(self):
         error = db.driver.nav.MazeWaterValue() # プライオリティーインデックスを振り分ける
+        db.driver.can_edit = False
         if error:
             print("error 0")
             return 0

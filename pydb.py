@@ -29,8 +29,9 @@ class DataBase:
         def __init__(self, p) -> None:
             self.layer = []
             """layerにView関数を追加してください"""
-            self.default_screen = self.Screen(1980, 1080)
-            self.screen = pygame.display.set_mode((self.default_screen.w, self.default_screen.h), pygame.FULLSCREEN) 
+            self.default_screen = self.Screen(1000, 600)
+            # self.screen = pygame.display.set_mode((self.default_screen.w, self.default_screen.h), pygame.FULLSCREEN)
+            self.screen = pygame.display.set_mode((self.default_screen.w, self.default_screen.h))  
             self.parent = p
         def draw(self):
             """draw関数はscreenに表示する、関数実行後layerをリセットする"""
@@ -182,7 +183,8 @@ class DataBase:
             self.rightclick = self.XandY(-1, -1)
             self.click = self.XandY(-1, -1)
             self.map_len = self.XandY(9, 9)
-            self.nav = self.Navigator(self) 
+            self.nav = self.Navigator(self)
+            self.can_edit = True
             self.map_box_size = 20
             self.map_box_margin = 10
             self.map = []
@@ -461,7 +463,7 @@ class DataBase:
                 if next_direction != -2:
                     return self.driver.car.x, self.driver.car.y, next_direction, self.driver.car.direction
                 else:
-                    return -1, -1, -1, -1
+                    return self.driver.car.x, self.driver.car.y, -1, self.driver.car.direction
 #if __name__ == '__main__':
 #   db.driver.nav.Reset()
 #   db.driver.nav.MazeWaterValue()

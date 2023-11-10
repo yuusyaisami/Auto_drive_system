@@ -7,8 +7,8 @@ db = pygui.db
 print("起動オプション")
 is_traffic = False
 print("traffic : " + str(is_traffic))
-if input("y/n ->") == "y" :
-    is_traffic = True
+#if input("y/n ->") == "y" :
+#    is_traffic = True
 do_system = True
 class MainScene:
     def __init__(self):
@@ -41,7 +41,6 @@ class MainScene:
         if parent == "編集" and child == "スタート" and db.driver.click.x != -1:
             db.driver.car.x = db.driver.click.x
             db.driver.car.y = db.driver.click.y
-            
         
     def draw(self):
         for i in self.items:
