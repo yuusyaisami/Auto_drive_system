@@ -433,9 +433,11 @@ class SlideBar:
         """現在の数値を取得する"""
         return self.value
     def get_change_value(self) -> True:
+        """アクティブ時に数値が変わったら"""
         if self.change_value:
             self.change_value = False
-            return True
+            if self.handle.active:
+                return True
         return False
     def set_value(self, value):
         self.change_value = value

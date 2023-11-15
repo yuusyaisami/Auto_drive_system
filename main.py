@@ -52,7 +52,7 @@ class MainScene:
         def __init__(self, rect, layer, visible):
             """Commonのrects.addのみ対応してる"""
             self.common = pygui.Common(rect, color="inactive", layer=layer, visible=visible, fontsize="s")
-            self.sliders = self.Sliders(rect, self.common.color, layer, visible, fontsize="s")
+            self.sliders = self.Sliders(rect, self.common.color, layer, fontsize="s")
         def handle_event(self, event):
             if self.common.visible:
                 self.sliders.handle_event(event)
@@ -62,7 +62,7 @@ class MainScene:
             if self.common.visible:
                 self.sliders.draw()
         class Sliders:
-            def __init__(self, rect, color, layer, visible, fontsize):
+            def __init__(self, rect, color, layer,  fontsize):
                 self.direction = pygui.SlideBar(rect, color, layer, True, fontsize,max_value=3,title="direction",is_view_value=True)
                 self.list = [self.direction]
             def handle_event(self, event):
@@ -71,8 +71,10 @@ class MainScene:
             def update(self):
                 for l in self.list:
                     l.update()
-                self.direction.set_value(db.driver.car.direction)
+                # 手動でvalueが変えられたとき
                 if self.direction.get_change_value():
+                    db.driver.car.direction = self.direction.value
+                self.direction.set_value(db.driver.car.direction)
                     
             def draw(self):
                 for l in self.list:
