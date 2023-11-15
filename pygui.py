@@ -388,18 +388,23 @@ class MenuBar:
                 return parent_name, child_name
         return False, False
 class SlideBar:
-    def __init__(self, rect, color, layer, visible, fontsize, is_view_value = False, max_value = 100, min_value = 0, value = 0, small_change = 1, height = 10, handle_size = 20):
+    def __init__(self, rect, color, layer, visible, fontsize, is_view_value = False, max_value = 100, min_value = 0, value = 0, small_change = 1, height = 10, handle_size = 20, title = ""):
         self.common = Common(rect, color, layer, visible, fontsize, str(value), False)
         self.max_value = max_value
         self.min_value = min_value
         self.value = value
+        self.save_value = value
+        self.change_value = False
         self.__is_view_value = is_view_value
         self.small_change = small_change
+        max_view_len = db.font.get("m", self.common.fontsize).render(title, True, db.color.get(self.common.color)).get_width()
+        self.title = Text(rect=pygame.Rect(self.common.rects.rect.x - max_view_len - 5, self.common.rects.rect.y - 8, max_view_len, 20), color=self.common.color, layer=self.common.layer, visible=visible, fontsize=fontsize, text=title)
         self.text = Text(rect=pygame.Rect(self.common.rects.rect.x + self.common.rects.rect.w + 12, self.common.rects.rect.y - 8, self.common.rects.rect.w, self.common.rects.rect.h), color=color, layer=layer, visible=True, fontsize=fontsize, text=str(value))
         self.bar = Square(rect=pygame.Rect(self.common.rects.rect.x + height / 2, self.common.rects.rect.y, self.common.rects.rect.w - height / 2, self.common.rects.rect.h), color=self.common.color, layer=1, visible=True, width=0, fontsize=fontsize)
         self.handle =  self.Square(rect=pygame.Rect(self.common.rects.rect.x - height / 2 , self.common.rects.rect.y - handle_size + (self.common.rects.rect.h * 1.5), handle_size, handle_size), color=self.common.color, layer=2, visible=True, width=0, fontsize=fontsize)
     def handle_event(self, event):
         if self.common.visible:
+            self.title.handle_event(event)
             self.handle.handle_event(event, self.bar.common.rects.rect.x)
             if self.handle.check_active():
                 if (self.handle.posi_mouse_move_differ.x % self.max_value) % self.small_change == 0:
@@ -410,11 +415,16 @@ class SlideBar:
                     self.value = 0
                 print(self.value)
     def update(self):
+        self.title.update()
         self.handle.update(self.value, self.max_value, self.bar.common.rects.rect.w)
         self.bar.update()
         self.text.common.text = str(self.value)
+        if self.change_value != self.value:
+            self.save_value = self.value
+            self.change_value = True
     def draw(self):
         if self.common.visible:
+            self.title.draw()
             self.bar.draw()
             self.handle.draw()
             if self.__is_view_value:
@@ -422,6 +432,14 @@ class SlideBar:
     def get_value(self) -> int:
         """現在の数値を取得する"""
         return self.value
+    def get_change_value(self) -> True:
+        if self.change_value:
+            self.change_value = False
+            return True
+        return False
+    def set_value(self, value):
+        self.change_value = value
+        self.value = value
     class Square:
         def __init__(self,rect, color, layer, visible, fontsize, width):
             self.common = Common(rect, color, layer, visible, fontsize)
@@ -557,7 +575,7 @@ class DriverMap:
             if self.RunTime.Do(60):
                 db.driver.car.x, db.driver.car.y, self.direction, db.driver.car.direction = db.driver.nav.DriverDirection() # 次の移動先とその方向
                 # 移動が終わったら実行する
-                if self.direction == -1:
+                if self.direction == -2:
                     db.driver.nav.Reset()
                     db.driver.goal.x = db.driver.goal.y = -1
                     db.driver.can_edit = True

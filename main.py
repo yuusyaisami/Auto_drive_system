@@ -17,7 +17,8 @@ class MainScene:
         self.debug_text = pygui.Text(pygame.Rect(20, 600, 128,32),"inactive", 0, True, "s", "")
         self.debug_text1 = pygui.Text(pygame.Rect(20, 630, 128,32),"inactive", 0, True, "s", "")
         self.driver_item = pygui.DriverMap()
-        self.items = [self.menu, self.boxs, self.debug_text,self.debug_text1, self.driver_item]
+        self.parameter = self.Parameter(pygame.Rect(800, 100, 150, 10), 1, True)
+        self.items = [self.menu, self.boxs, self.debug_text,self.debug_text1, self.driver_item, self.parameter]
     def handle_event(self, event):
         for i in self.items:
             i.handle_event(event)
@@ -31,6 +32,8 @@ class MainScene:
         parent, child = self.menu.get()
         if parent == "実行" and child == "Run":
             self.driver_item.Run()
+        if parent == "実行" and child == "パラメーター表示":
+            self.parameter.common.visible = not self.parameter.common.visible
         if parent == "編集" and child == "壁" and db.driver.click.x != -1:
             db.driver.map[db.driver.click.y][db.driver.click.x] = 99
         if parent == "編集" and child == "道" and db.driver.click.x != -1:
@@ -41,10 +44,39 @@ class MainScene:
         if parent == "編集" and child == "スタート" and db.driver.click.x != -1:
             db.driver.car.x = db.driver.click.x
             db.driver.car.y = db.driver.click.y
-        
     def draw(self):
         for i in self.items:
             i.draw()
+        
+    class Parameter:
+        def __init__(self, rect, layer, visible):
+            """Commonのrects.addのみ対応してる"""
+            self.common = pygui.Common(rect, color="inactive", layer=layer, visible=visible, fontsize="s")
+            self.sliders = self.Sliders(rect, self.common.color, layer, visible, fontsize="s")
+        def handle_event(self, event):
+            if self.common.visible:
+                self.sliders.handle_event(event)
+        def update(self):
+            self.sliders.update()
+        def draw(self):
+            if self.common.visible:
+                self.sliders.draw()
+        class Sliders:
+            def __init__(self, rect, color, layer, visible, fontsize):
+                self.direction = pygui.SlideBar(rect, color, layer, True, fontsize,max_value=3,title="direction",is_view_value=True)
+                self.list = [self.direction]
+            def handle_event(self, event):
+                for l in self.list:
+                    l.handle_event(event)
+            def update(self):
+                for l in self.list:
+                    l.update()
+                self.direction.set_value(db.driver.car.direction)
+                if self.direction.get_change_value():
+                    
+            def draw(self):
+                for l in self.list:
+                    l.draw()
 main_scene = MainScene()
 container = [main_scene]
 while do_system:

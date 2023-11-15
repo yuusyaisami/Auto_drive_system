@@ -463,7 +463,7 @@ class DataBase:
                 if next_direction != -2:
                     return self.driver.car.x, self.driver.car.y, next_direction, self.driver.car.direction
                 else:
-                    return self.driver.car.x, self.driver.car.y, -1, self.driver.car.direction
+                    return self.driver.car.x, self.driver.car.y, -2, self.driver.car.direction
 #if __name__ == '__main__':
 #   db.driver.nav.Reset()
 #   db.driver.nav.MazeWaterValue()
