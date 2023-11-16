@@ -41,16 +41,18 @@ class Timer:
         self.visible = visible
         self.type = type
         self.count = self.Count(count_increase, count_first)
-    def Do(self, goal_value):
+    def Do(self, goal_value, increase = True):
         """Do関数は引数で渡した数値とDo関数内で追加されていくcount.valueが一致したときtrueを返します"""
         if self.visible:
-            self.count.update()
+            if increase:
+                self.count.update()
             if self.count.Do(goal_value):
                 if self.type == "onetime":
                     self.count.value = self.count.first
                     self.visible = False
                 return True
         return False
+    
     def reset(self, change_visible = True):
         self.count.value = self.count.first
         self.visible = change_visible
@@ -549,14 +551,20 @@ class BoxContainer:
     def handle_event(self, event):
         for r in db.driver.mapbox:
             r.handle_event(event)
+        for t in db.driver.traffic.list:
+            t.handle_event(event)
     def update(self):
         self.common.rects.update()
         for r in db.driver.mapbox:
             r.common.rects.add = self.common.rects.add
             r.update()
+        for t in db.driver.traffic.list:
+            t.update()
     def draw(self):
         for r in db.driver.mapbox:
             r.draw()
+        for t in db.driver.traffic.list:
+            t.draw()
     def create_map(self):
         for r in range(len(db.driver.map)):
             for c in range(len(db.driver.map[r])):
@@ -575,14 +583,17 @@ class DriverMap:
         # 走行RUN
         if self.run:
             if self.RunTime.Do(60):
-                db.driver.car.x, db.driver.car.y, self.direction, db.driver.car.direction = db.driver.nav.DriverDirection() # 次の移動先とその方向
-                # 移動が終わったら実行する
-                if self.direction == -2:
-                    db.driver.nav.Reset()
-                    db.driver.goal.x = db.driver.goal.y = -1
-                    db.driver.can_edit = True
-                    self.run = False # 処理終了
-                    self.RunTime.reset(False)
+                if db.driver.traffic.traffic_state(db.driver.car.x, db.driver.car.y, db.driver.car.direction) == "green":
+                    db.driver.car.x, db.driver.car.y, self.direction, db.driver.car.direction = db.driver.nav.DriverDirection() # 次の移動先とその方向
+                    # 移動が終わったら実行する
+                    if self.direction == -2:
+                        db.driver.nav.Reset()
+                        db.driver.goal.x = db.driver.goal.y = -1
+                        db.driver.can_edit = True
+                        self.run = False # 処理終了
+                        self.RunTime.reset(False)
+                else:
+                    self.RunTime.count.value = 55
     def Run(self):
         error = db.driver.nav.MazeWaterValue() # プライオリティーインデックスを振り分ける
         db.driver.can_edit = False
@@ -594,6 +605,58 @@ class DriverMap:
         self.RunTime.reset()
     def draw(self):
         pass
+class Traffic:
+    def __init__(self, rect, layer, w, h, greentime, redtime, direction, map_x, map_y):
+        rect.w = rect.h = 4
+        self.mapbox_w = w
+        self.mapbox_h = h
+        self.common = Common(pygame.Rect(rect.x, rect.y, rect.w, rect.h), "red", 2, layer, "s")
+        self.green_time = greentime
+        self.red_time = redtime
+        self.direction = direction
+        self.map = self.MapVariable(map_x, map_y, direction)
+        self.boxsize = self.BoxSize(w, h)
+        self.timer = Timer("cycle")
+        self.visible = True
+        self.state = "red"
+        self.__count = 0
+    def handle_event(self, event):
+        pass
+    def update(self):
+        self.__count += 1
+        if self.__count == self.green_time:
+            self.state = self.common.color = "red"
+        if self.__count == self.green_time + self.red_time:
+            self.state = self.common.color = "green"
+            self.__count = 0
+
+        if self.direction == 0:
+            self.common.rects.rect.y = self.common.rects.default.y - (self.common.rects.rect.w / 3)
+            self.common.rects.rect.x = self.common.rects.default.x + (self.mapbox_w / 2 - (self.common.rects.rect.w / 2))
+        elif self.direction == 1:
+            self.common.rects.rect.x = self.common.rects.default.x + self.mapbox_h - self.common.rects.rect.h / 1.5
+            self.common.rects.rect.y = self.common.rects.default.y + self.mapbox_h / 2 - self.common.rects.rect.h / 3
+        elif self.direction == 2:
+            self.common.rects.rect.y = self.common.rects.default.y + self.mapbox_h - self.common.rects.rect.h / 1.5
+            self.common.rects.rect.x = self.common.rects.default.x + (self.mapbox_w / 2 - (self.common.rects.rect.w / 2))
+        elif self.direction == 3:
+            self.common.rects.rect.y = self.common.rects.default.y + self.mapbox_h / 2 - self.common.rects.rect.h / 3
+            self.common.rects.rect.x = self.common.rects.default.x - (self.common.rects.rect.w / 3)
+    def draw(self):
+        if self.visible:
+            db.view.layer.append(db.view.View("rect", self.common.fontsize, self.common.color, pygame.Rect(self.common.rects.rect.x, self.common.rects.rect.y, 4, 4), self.common.layer, line_width=0))
+    class MapVariable:
+        def __init__(self, x, y, d):
+            self.x = x
+            self.y = y
+            self.d = d
+            self.direction = d
+    class BoxSize:
+        def __init__(self, w, h) -> None:
+            self.w = w
+            self.h = h
+def traffic_add(rect, x, y, d):
+    db.driver.traffic.list.append(Traffic(rect, 3, db.driver.map_box_size, db.driver.map_box_size, 180, 180, d, x, y))
 def main():
     clock = pygame.time.Clock()
     slidebar = SlideBar(pygame.Rect(20, 30, 200, 10), "inactive", 0, True, "s", True,max_value=100)

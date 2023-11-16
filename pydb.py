@@ -190,7 +190,41 @@ class DataBase:
             self.map = []
             self.create_map()
             self.mapbox = []
-            self.traffic = []
+            self.traffic = self.Traffic()
+        class Traffic:
+            def __init__(self) -> None:
+                self.list = []
+            def search(self, x, y, d) -> int:
+                """db.driver.traffic.list[i]のインデックスを返します存在しない場合-1を返します"""
+                for t in range(len(self.list)):
+                    if self.list[t].map.x == x and self.list[t].map.y == y and self.list[t].map.direction == d:
+                        return t
+                return -1
+            def delete(self, x, y, d):
+                for t in range(len(self.list)):
+                    if self.list[t].map.x == x and self.list[t].map.y == y and self.list[t].map.direction == d:
+                        del self.list[t]
+            def traffic_state(self, x, y, d) -> str:
+                """x, y, d で状態を見ます"""
+                if d == 0:
+                    y -= 1
+                if d == 1:
+                    x += 1
+                if d == 2:
+                    y += 1
+                if d == 3:
+                    x -= 1
+                i = self.search(x, y, d)
+                if i == -1:
+                    return "green" # 緑
+                else:
+                    return self.list[i].state # とまれ
+            def can_set_direction(self,x , y):
+                for i in range(4):
+                    if self.search(x, y, i) == -1:
+                        return i
+                return -1
+                
         def create_map(self):
             self.map = np.empty((0, self.map_len.x))
             rowsline = np.zeros(self.map_len.x)
@@ -219,6 +253,11 @@ class DataBase:
             return arg_x == self.goal.x and arg_y == self.goal.y
         def match_start(self, arg_x, arg_y):
             return arg_x == self.car.x and arg_y == self.car.y
+        def search_box(self, x, y):
+            for i in range(len(self.mapbox)):
+                if self.mapbox[i].map.x == x and self.mapbox[i].map.y == y:
+                    return i
+            return -1
         class Player:
             def __init__(self, x, y, d):
                 self.x = x

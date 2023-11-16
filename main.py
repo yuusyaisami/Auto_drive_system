@@ -1,22 +1,26 @@
 import pygame
 import pygui
 import pydb
+import raspberry
 # import raspberry
 # raspberryパイモジュールはraspberryパイを使用するときのみ呼び出してください
 db = pygui.db
 print("起動オプション")
-is_traffic = False
-print("traffic : " + str(is_traffic))
+ras = False
+print("raspberry pi : " + str(ras))
 #if input("y/n ->") == "y" :
 #    is_traffic = True
 do_system = True
 class MainScene:
     def __init__(self):
-        self.menu = pygui.MenuBar(pygame.Rect(20, 5, 128, 26), "inactive", 3, True, "s", "n",[["ファイル", "新規作成", "保存", "設定"], ["編集", "壁", "道", "ゴール", "スタート", "信号設置"], ["実行", "Run", "変数表示", "パラメーター表示"]])
+        self.menu = pygui.MenuBar(pygame.Rect(20, 5, 128, 26), "inactive", 10, True, "s", "n",[["ファイル", "新規作成", "保存", "設定"], ["編集", "壁", "道", "ゴール", "スタート", "信号設置"], ["実行", "Run", "変数表示", "パラメーター表示"]])
         self.boxs = pygui.BoxContainer(pygame.Rect(50, 100, 32, 32), 0)
         self.debug_text = pygui.Text(pygame.Rect(20, 600, 128,32),"inactive", 0, True, "s", "")
         self.debug_text1 = pygui.Text(pygame.Rect(20, 630, 128,32),"inactive", 0, True, "s", "")
-        self.driver_item = pygui.DriverMap()
+        if ras:
+            self.driver_item = raspberry.DriverMap()
+        else:
+            self.driver_item = pygui.DriverMap()
         self.parameter = self.Parameter(pygame.Rect(800, 100, 150, 10), 1, True)
         self.items = [self.menu, self.boxs, self.debug_text,self.debug_text1, self.driver_item, self.parameter]
     def handle_event(self, event):
@@ -44,6 +48,12 @@ class MainScene:
         if parent == "編集" and child == "スタート" and db.driver.click.x != -1:
             db.driver.car.x = db.driver.click.x
             db.driver.car.y = db.driver.click.y
+        if parent == "編集" and child == "信号設置":
+            if db.driver.click.y != -1:
+                i = db.driver.search_box(db.driver.click.x, db.driver.click.y)
+                d = db.driver.traffic.can_set_direction(db.driver.mapbox[i].map.x, db.driver.mapbox[i].map.y)
+                if d != -1:
+                    pygui.traffic_add(db.driver.mapbox[i].common.rects.rect, db.driver.mapbox[i].map.x, db.driver.mapbox[i].map.y, d)
     def draw(self):
         for i in self.items:
             i.draw()
@@ -75,7 +85,6 @@ class MainScene:
                 if self.direction.get_change_value():
                     db.driver.car.direction = self.direction.value
                 self.direction.set_value(db.driver.car.direction)
-                    
             def draw(self):
                 for l in self.list:
                     l.draw()

@@ -1,4 +1,5 @@
 import pygame as pg
+import pygui
 import numpy as np
 import pygame.mouse as ms
 import socket
@@ -64,9 +65,20 @@ class Car:
         
         px.set_camera_servo2_angle(-50)
         px.set_camera_servo1_angle(10)
+
+        # parameter変数
+        self.back_count = 25
+        self.first_camera_y = 108
+        self.curve_angle = 20
+        self.camera_angle = -50
+        self.red_range = 4
+
+        #text変数
+        self.first_catch_color = "0"
     def color_detect(self, img,color_name):
         red_x = []
         red_y = []
+        color_dict["red"] = [0, self.red_range]
         # 青色域は照明条件によって異なり、フレキシブルに調整できる。 H：彩度、S：彩度 v：明度
         resize_img = cv2.resize(img, (160,120), interpolation=cv2.INTER_LINEAR)  # 計算量を減らすため、画像のサイズを(160,120)に縮小している。
         hsv = cv2.cvtColor(resize_img, cv2.COLOR_BGR2HSV)              # BGRからHSVへの変換
@@ -123,7 +135,7 @@ class Car:
             
         # main処理
         if self.Determined:
-            
+            px.set_camera_servo2_angle(self.camera_angle)
             img,redflag,x,y =  self.color_detect(img,'red_2')
             cv2.imshow("color detect camera", img)
             self.LineTrace()
@@ -140,7 +152,9 @@ class Car:
                 if y[count] > 160 and not self.curve and not self.aftertreatment and direction != 0 and not self.back:
                     self.back = True
                     self.backtime = y[count]
-                if y[count] > 108 and not self.curve and not self.aftertreatment:
+                    self.first_catch_color = str(y[count]) + ", back"
+                if y[count] > self.first_camera_y and not self.curve and not self.aftertreatment:
+                    self.first_catch_color = str(y[count]) + ", curve"
                     #前進以外は曲がる処理を必要とする
                     if direction != 0:
                         self.initial_curve = True
@@ -167,7 +181,7 @@ class Car:
         if self.back:
             px.set_dir_servo_angle(0)
             print("back")
-            self.backcount += 25
+            self.backcount += self.back_count
             self.linetrace = False
             px.backward(self.speed)
             if self.backcount > self.backtime / 3:
@@ -242,11 +256,11 @@ class Car:
         if self.initial_curve and not self.Tuning:
             if  direction == -1:
                 px.forward(self.speed)
-                px.set_dir_servo_angle(-self.angle - 20)
+                px.set_dir_servo_angle(-self.angle - self.curve_angle)
                 self.car_direction = -1
             if direction == 1:
                 px.forward(self.speed)
-                px.set_dir_servo_angle(self.angle + 20)
+                px.set_dir_servo_angle(self.angle + self.curve_angle)
                 self.car_direction = 1
             self.curve = True
             self.initial_curve = not self.initial_curve
@@ -267,6 +281,12 @@ class Car:
                 self.do_Tuning = True
                 self.aftercount = 0
                 print("Curve stop")
+            elif self.curve_count > 1000: # 明らかにオーバーしている
+                #進行方向を反転させる
+                if  direction == 1:
+                    px.set_dir_servo_angle(-self.angle - self.curve_angle)
+                if direction == -1:
+                    px.set_dir_servo_angle(self.angle + self.curve_angle)
     def After(self, n = 5):
         if self.aftertreatment:
             self.aftercount += 1
@@ -334,16 +354,41 @@ class DriverMap:
         self.run = False
         self.car = Car(10,10)
         self.direction = 0
+        self.backtime_slider = pygui.SlideBar(pg.Rect(800, 200, 150, 10), "inactive", 1, True, "s", True, 100, 1, 25)
+        self.first_camera_slider = pygui.SlideBar(pg.Rect(800, 300, 150, 10), "inactive", 1, True, "s", True, 200, 1, 25)
+        self.curve_angle = pygui.SlideBar(pg.Rect(800, 400, 150, 10), "inactive", 1, True, "s", True, 60, 1, 20)
+        self.camera_angle = pygui.SlideBar(pg.Rect(800, 500, 150, 10), "inactive", 1, True, "s", True, 60, 1, 50) # 本来は-がつく
+        self.red_range = pygui.SlideBar(pg.Rect(800, 600, 150, 10), "inactive", 1, True, "s", True, 30, 1, 4)
+        self.curve_count = pygui.Text(pg.Rect(650, 100, 150, 10), "inactive", 1, True, "s", "curve_count")
+        self.first_catch_color_text = pygui.Text(pg.Rect(650, 200, 150, 10), "inactive", 1, True, "s", "first camera")
+        self.slider = [self.backtime_slider, self.first_camera_slider, self.curve_angle, self.camera_angle, self.red_range, self.curve_count, self.first_catch_color_text]
     def handle_event(self, event):
-        pass
+        for s in self.slider:
+            s.handle_event(event)
     def update(self):
+        for s in self.slider:
+            s.update()
+        if self.backtime_slider.get_change_value():
+            self.car.back_count = self.backtime_slider.value
+        if self.first_camera_slider.get_change_value():
+            self.car.first_camera_y = self.first_camera_slider.value
+        if self.curve_angle.get_change_value():
+            self.car.curve_angle = self.curve_angle.value
+        if self.camera_angle.get_change_value():
+            self.car.camera_angle = -1 * self.camera_angle.value
+        if self.red_range.get_change_value():
+            self.car.red_range = self.red_range.value
+
+        if self.car.curve_count != 0:
+            self.curve_count.common.text = "curve count : " + str(self.car.curve_count)
+        self.first_catch_color_text.common.text = "first catch : " + str(self.car.first_catch_color)
         #--------------------------------------------------自動走行処理--------------------------------------------------
         # 走行RUN
         if self.run:
             if not self.car.Determined:
-                db.driver.car.x, db.driver.car.y, self.direction, db.driver.car.direction = db.driver.nav.DriverDirection(db.driver.map, db.driver) # 次の移動先とその方向
+                db.driver.car.x, db.driver.car.y, self.direction, db.driver.car.direction = db.driver.nav.DriverDirection() # 次の移動先とその方向
                 # 移動が終わったら実行する
-                if self.direction == -1:
+                if self.direction == -2:
                     db.driver.nav.Reset()
                     self.run = False # 処理終了
                 else:
@@ -356,4 +401,5 @@ class DriverMap:
         db.driver.nav.MazeShortestRoute() # マップの最適ルートを検索する
         self.run = True
     def draw(self):
-        pass
+        for s in self.slider:
+            s.draw()
