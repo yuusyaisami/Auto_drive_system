@@ -234,7 +234,7 @@ class Car:
                 self.TuningCount += 1
                 on_line = True
             # ラインに復帰する
-            if self.TuningCount > 2 or on_line:
+            if self.TuningCount > 1 or on_line:
                 if self.car_direction == -1:
                     px.set_dir_servo_angle(self.angle - 5)
                 elif self.car_direction == 1:
@@ -354,34 +354,13 @@ class DriverMap:
         self.run = False
         self.car = Car(10,10)
         self.direction = 0
-        self.backtime_slider = pygui.SlideBar(pg.Rect(800, 200, 150, 10), "inactive", 1, True, "s", True, 100, 1, 25)
-        self.first_camera_slider = pygui.SlideBar(pg.Rect(800, 300, 150, 10), "inactive", 1, True, "s", True, 200, 1, 25)
-        self.curve_angle = pygui.SlideBar(pg.Rect(800, 400, 150, 10), "inactive", 1, True, "s", True, 60, 1, 20)
-        self.camera_angle = pygui.SlideBar(pg.Rect(800, 500, 150, 10), "inactive", 1, True, "s", True, 60, 1, 50) # 本来は-がつく
-        self.red_range = pygui.SlideBar(pg.Rect(800, 600, 150, 10), "inactive", 1, True, "s", True, 30, 1, 4)
-        self.curve_count = pygui.Text(pg.Rect(650, 100, 150, 10), "inactive", 1, True, "s", "curve_count")
-        self.first_catch_color_text = pygui.Text(pg.Rect(650, 200, 150, 10), "inactive", 1, True, "s", "first camera")
-        self.slider = [self.backtime_slider, self.first_camera_slider, self.curve_angle, self.camera_angle, self.red_range, self.curve_count, self.first_catch_color_text]
+        self.slider = self.Sliders(True, self.car)
+        
     def handle_event(self, event):
-        for s in self.slider:
-            s.handle_event(event)
+        self.slider.handle_event(event)
     def update(self):
-        for s in self.slider:
-            s.update()
-        if self.backtime_slider.get_change_value():
-            self.car.back_count = self.backtime_slider.value
-        if self.first_camera_slider.get_change_value():
-            self.car.first_camera_y = self.first_camera_slider.value
-        if self.curve_angle.get_change_value():
-            self.car.curve_angle = self.curve_angle.value
-        if self.camera_angle.get_change_value():
-            self.car.camera_angle = -1 * self.camera_angle.value
-        if self.red_range.get_change_value():
-            self.car.red_range = self.red_range.value
-
-        if self.car.curve_count != 0:
-            self.curve_count.common.text = "curve count : " + str(self.car.curve_count)
-        self.first_catch_color_text.common.text = "first catch : " + str(self.car.first_catch_color)
+        self.slider.update()
+        
         #--------------------------------------------------自動走行処理--------------------------------------------------
         # 走行RUN
         if self.run:
@@ -401,5 +380,39 @@ class DriverMap:
         db.driver.nav.MazeShortestRoute() # マップの最適ルートを検索する
         self.run = True
     def draw(self):
-        for s in self.slider:
-            s.draw()
+        self.slider.draw()
+    class Sliders:
+        def __init__(self, visible, car):
+            self.visible = visible
+            self.car = car
+            self.backtime_slider = pygui.SlideBar(pg.Rect(800, 200, 150, 10), "inactive", 1, True, "s", True, 100, 1, 25)
+            self.first_camera_slider = pygui.SlideBar(pg.Rect(800, 300, 150, 10), "inactive", 1, True, "s", True, 200, 1, 25)
+            self.curve_angle = pygui.SlideBar(pg.Rect(800, 400, 150, 10), "inactive", 1, True, "s", True, 60, 1, 20)
+            self.camera_angle = pygui.SlideBar(pg.Rect(800, 500, 150, 10), "inactive", 1, True, "s", True, 60, 1, 50) # 本来は-がつく
+            self.red_range = pygui.SlideBar(pg.Rect(800, 600, 150, 10), "inactive", 1, True, "s", True, 30, 1, 4)
+            self.curve_count = pygui.Text(pg.Rect(650, 100, 150, 10), "inactive", 1, True, "s", "curve_count")
+            self.first_catch_color_text = pygui.Text(pg.Rect(650, 200, 150, 10), "inactive", 1, True, "s", "first camera")
+            self.slider = [self.backtime_slider, self.first_camera_slider, self.curve_angle, self.camera_angle, self.red_range, self.curve_count, self.first_catch_color_text]
+        def handle_event(self, event):
+            for s in self.slider:
+                s.handle_event(event)
+        def update(self):
+            for s in self.slider:
+                s.update()
+            if self.backtime_slider.get_change_value():
+                self.car.back_count = self.backtime_slider.value
+            if self.first_camera_slider.get_change_value():
+                self.car.first_camera_y = self.first_camera_slider.value
+            if self.curve_angle.get_change_value():
+                self.car.curve_angle = self.curve_angle.value
+            if self.camera_angle.get_change_value():
+                self.car.camera_angle = -1 * self.camera_angle.value
+            if self.red_range.get_change_value():
+                self.car.red_range = self.red_range.value
+
+            if self.car.curve_count != 0:
+                self.curve_count.common.text = "curve count : " + str(self.car.curve_count)
+            self.first_catch_color_text.common.text = "first catch : " + str(self.car.first_catch_color)
+        def draw(self):
+            for s in self.slider:
+                s.draw()

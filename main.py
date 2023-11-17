@@ -26,8 +26,6 @@ class MainScene:
     def handle_event(self, event):
         for i in self.items:
             i.handle_event(event)
-
-
     def update(self):
         for i in self.items:
             i.update()
@@ -38,6 +36,7 @@ class MainScene:
             self.driver_item.Run()
         if parent == "実行" and child == "パラメーター表示":
             self.parameter.common.visible = not self.parameter.common.visible
+            self.driver_item.slider.visible = self.parameter.common.visible
         if parent == "編集" and child == "壁" and db.driver.click.x != -1:
             db.driver.map[db.driver.click.y][db.driver.click.x] = 99
         if parent == "編集" and child == "道" and db.driver.click.x != -1:
@@ -63,6 +62,7 @@ class MainScene:
             """Commonのrects.addのみ対応してる"""
             self.common = pygui.Common(rect, color="inactive", layer=layer, visible=visible, fontsize="s")
             self.sliders = self.Sliders(rect, self.common.color, layer, fontsize="s")
+
         def handle_event(self, event):
             if self.common.visible:
                 self.sliders.handle_event(event)
@@ -88,6 +88,13 @@ class MainScene:
             def draw(self):
                 for l in self.list:
                     l.draw()
+class SettingScene:
+    def __init__(self):
+        pass
+    class Parameter:
+        def __init__(self) -> None:
+            pass
+
 main_scene = MainScene()
 container = [main_scene]
 while do_system:
