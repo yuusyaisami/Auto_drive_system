@@ -236,7 +236,7 @@ class Car:
                 self.TuningCount += 1
                 on_line = True
             # ラインに復帰する
-            if self.TuningCount > 2 or on_line:
+            if self.TuningCount > 1 or on_line:
                 if self.car_direction == -1:
                     px.set_dir_servo_angle(self.angle - 5)
                 elif self.car_direction == 1:
@@ -398,8 +398,7 @@ class DriverMap:
             self.state_text,
             ]
     def handle_event(self, event):
-        for s in self.slider:
-            s.handle_event(event)
+        self.slider.handle_event(event)
     def update(self):
         if self.sliders_visible:
             for s in self.slider:

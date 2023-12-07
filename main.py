@@ -24,8 +24,6 @@ class MainScene:
     def handle_event(self, event):
         for i in self.items:
             i.handle_event(event)
-
-
     def update(self):
         for i in self.items:
             i.update()
@@ -62,6 +60,7 @@ class MainScene:
             """Commonのrects.addのみ対応してる"""
             self.common = pygui.Common(rect, color="inactive", layer=layer, visible=visible, fontsize="s")
             self.sliders = self.Sliders(rect, self.common.color, layer, fontsize="s")
+
         def handle_event(self, event):
             if self.common.visible:
                 self.sliders.handle_event(event)
@@ -87,6 +86,13 @@ class MainScene:
             def draw(self):
                 for l in self.list:
                     l.draw()
+class SettingScene:
+    def __init__(self):
+        pass
+    class Parameter:
+        def __init__(self) -> None:
+            pass
+
 main_scene = MainScene()
 container = [main_scene]
 clock = pygame.time.Clock()
