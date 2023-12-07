@@ -2,11 +2,10 @@ import pygame
 import pygui
 import pydb
 import raspberry
-# import raspberry
 # raspberryパイモジュールはraspberryパイを使用するときのみ呼び出してください
 db = pygui.db
 print("起動オプション")
-ras = False
+ras = True
 print("raspberry pi : " + str(ras))
 #if input("y/n ->") == "y" :
 #    is_traffic = True
@@ -17,10 +16,9 @@ class MainScene:
         self.boxs = pygui.BoxContainer(pygame.Rect(50, 100, 32, 32), 0)
         self.debug_text = pygui.Text(pygame.Rect(20, 600, 128,32),"inactive", 0, True, "s", "")
         self.debug_text1 = pygui.Text(pygame.Rect(20, 630, 128,32),"inactive", 0, True, "s", "")
-        if ras:
-            self.driver_item = raspberry.DriverMap()
-        else:
-            self.driver_item = pygui.DriverMap()
+
+        self.driver_item = raspberry.DriverMap()
+        # self.driver_item = pygui.DriverMap()
         self.parameter = self.Parameter(pygame.Rect(800, 100, 150, 10), 1, True)
         self.items = [self.menu, self.boxs, self.debug_text,self.debug_text1, self.driver_item, self.parameter]
     def handle_event(self, event):
@@ -38,6 +36,7 @@ class MainScene:
             self.driver_item.Run()
         if parent == "実行" and child == "パラメーター表示":
             self.parameter.common.visible = not self.parameter.common.visible
+            self.driver_item.sliders_visible = self.parameter.common.visible
         if parent == "編集" and child == "壁" and db.driver.click.x != -1:
             db.driver.map[db.driver.click.y][db.driver.click.x] = 99
         if parent == "編集" and child == "道" and db.driver.click.x != -1:
@@ -90,16 +89,23 @@ class MainScene:
                     l.draw()
 main_scene = MainScene()
 container = [main_scene]
-while do_system:
-    clock = pygame.time.Clock()
-    done = False
-    while not done:
-        for event in pygame.event.get():
-            for c in container:
-                c.handle_event(event)
+clock = pygame.time.Clock()
+done = False
+for frame in main_scene.driver_item.camera.capture_continuous(main_scene.driver_item.rawCapture, format="bgr",use_video_port=True):
+    db.driver.img = frame.array
+    main_scene.driver_item.rawCapture.truncate(0)
+# while not done:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            done = True
+            break
         for c in container:
-            c.update()
-        for c in container:
-            c.draw()
-        pygui.db.view.draw()
-        clock.tick(60)
+            c.handle_event(event)
+    for c in container:
+        c.update()
+    for c in container:
+        c.draw()
+    pygui.db.view.draw()
+    clock.tick(60)
+main_scene.driver_item.camera.close()
+pygame.quit()

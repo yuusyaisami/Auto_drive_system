@@ -1,0 +1,5 @@
+backtime:25
+first camera:79
+curve angle:41
+camera angle:50
+red range:4

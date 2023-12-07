@@ -166,7 +166,7 @@ class Text:
     def update(self):
         self.common.rects.update()
     def draw(self):
-        db.view.layer.append(db.view.View("text", self.common.fontsize, self.common.color, self.common.rects.rect, self.common.layer, self.common.text))
+        db.view.layer.append(db.view.View("text", self.common.fontsize, self.common.color, self.common.rects.rect, self.common.layer, str(self.common.text)))
         if self.common.is_frame:
             db.view.layer.append(db.view.View("rect", self.common.fontsize, self.common.color, self.common.rects.rect, self.common.layer, line_width=2))
 
@@ -410,7 +410,7 @@ class SlideBar:
             self.handle.handle_event(event, self.bar.common.rects.rect.x)
             if self.handle.check_active():
                 if (self.handle.posi_mouse_move_differ.x % self.max_value) % self.small_change == 0:
-                    self.value = int(self.handle.posi_mouse_move_differ.x * ( self.max_value / self.bar.common.rects.rect.w))
+                    self.value = int(round(self.handle.posi_mouse_move_differ.x * ( self.max_value / self.bar.common.rects.rect.w)))
                 if self.value > self.max_value:
                     self.value = self.max_value
                 if self.value < 0:

@@ -3,7 +3,6 @@ import pygui
 import numpy as np
 import pygame.mouse as ms
 import socket
-import main
 import pydb
 import time
 import random
@@ -23,7 +22,7 @@ class socketclass:
         self.sock.connect((IPADDR, PORT))
 sockets = socketclass()
 pg.init()
-db = main.db
+db = pygui.db
 kernel_5 = np.ones((5,5),np.uint8)
 px = Picarx()
 px.set_grayscale_reference(1400)
@@ -75,6 +74,7 @@ class Car:
 
         #text変数
         self.first_catch_color = "0"
+        self.state = "とどまる"
     def color_detect(self, img,color_name):
         red_x = []
         red_y = []
@@ -131,6 +131,7 @@ class Car:
                 self.do_Tuning = False
                 print("前進")
             print("イニシャライズメイン処理")
+            self.state = "linetrace + detect color"
             self.turned_direction = 0
             
         # main処理
@@ -223,6 +224,7 @@ class Car:
                         print("Tuning start")
     def LineTuning(self):
         if self.Tuning:
+            self.state = "linetuning..."
             on_line = False
             px.forward(self.speed)
             if self.car_direction == -1:
@@ -245,6 +247,7 @@ class Car:
                     elif self.turned_direction == 1:
                         px.set_dir_servo_angle(-self.angle + 5)
                 # 初期値に戻す
+                self.state = "linetrace(return) + detect color"
                 print("Tuning Stop")
                 self.Tuning = False
                 self.linetrace = True
@@ -254,6 +257,7 @@ class Car:
     def Curve(self, direction):
         #コーナーカーブ 初回
         if self.initial_curve and not self.Tuning:
+            self.state = "curve"
             if  direction == -1:
                 px.forward(self.speed)
                 px.set_dir_servo_angle(-self.angle - self.curve_angle)
@@ -280,6 +284,7 @@ class Car:
                 self.linetrace = True
                 self.do_Tuning = True
                 self.aftercount = 0
+                self.state = "After"
                 print("Curve stop")
             elif self.curve_count > 1000: # 明らかにオーバーしている
                 #進行方向を反転させる
@@ -287,6 +292,7 @@ class Car:
                     px.set_dir_servo_angle(-self.angle - self.curve_angle)
                 if direction == -1:
                     px.set_dir_servo_angle(self.angle + self.curve_angle)
+                self.state = "over curve"
     def After(self, n = 5):
         if self.aftertreatment:
             self.aftercount += 1
@@ -296,6 +302,7 @@ class Car:
                     px.stop()
                     self.aftercount = 0
                     print("After stop")
+                    self.state = "stop"
                 else:
                     self.aftercount = 4
 # 信号のクラス
@@ -348,51 +355,88 @@ class Traffic:
         stute = str(stute)
         sock.send(("type:" + command + ",x:" + str(x) + ",y:" + str(y) + ",direction:" + str(direction) + ",stute:" + str(stute)).encode("utf-8"))
 
-# 自動走行のクラス
+## 自動走行のクラス
+#class Car:
+#    def __init__(self, x, y):
+#        self.back_count = 0
+#        self.first_camera_y = 0
+#        self.curve_angle = 0
+#        self.camera_angle = 0
+#        self.red_range = 0
+#        self.curve_count = 0
+#        self.first_catch_color = 19
+#        self.Determined = True
+#        self.initial_Determined = True
+#    def update(self, d, img):
+#        pass
 class DriverMap:
     def __init__(self):
+        self.camera = picamera.PiCamera()
+        self.camera.resolution = (528,480)
+        self.camera.framerate = 24
+        self.rawCapture = PiRGBArray(self.camera, size=self.camera.resolution)
         self.run = False
         self.car = Car(10,10)
         self.direction = 0
-        self.backtime_slider = pygui.SlideBar(pg.Rect(800, 200, 150, 10), "inactive", 1, True, "s", True, 100, 1, 25)
-        self.first_camera_slider = pygui.SlideBar(pg.Rect(800, 300, 150, 10), "inactive", 1, True, "s", True, 200, 1, 25)
-        self.curve_angle = pygui.SlideBar(pg.Rect(800, 400, 150, 10), "inactive", 1, True, "s", True, 60, 1, 20)
-        self.camera_angle = pygui.SlideBar(pg.Rect(800, 500, 150, 10), "inactive", 1, True, "s", True, 60, 1, 50) # 本来は-がつく
-        self.red_range = pygui.SlideBar(pg.Rect(800, 600, 150, 10), "inactive", 1, True, "s", True, 30, 1, 4)
-        self.curve_count = pygui.Text(pg.Rect(650, 100, 150, 10), "inactive", 1, True, "s", "curve_count")
-        self.first_catch_color_text = pygui.Text(pg.Rect(650, 200, 150, 10), "inactive", 1, True, "s", "first camera")
-        self.slider = [self.backtime_slider, self.first_camera_slider, self.curve_angle, self.camera_angle, self.red_range, self.curve_count, self.first_catch_color_text]
+        self.sliders_visible = True
+        self.backtime_slider = pygui.SlideBar(pg.Rect(800, 200, 150, 10), "inactive", 1, True, "s", True, 100, 1, 25,title="backtime")
+        self.first_camera_slider = pygui.SlideBar(pg.Rect(800, 250, 150, 10), "inactive", 1, True, "s", True, 200, 1, 25,title="first camera")
+        self.curve_angle = pygui.SlideBar(pg.Rect(800, 300, 150, 10), "inactive", 1, True, "s", True, 60, 1, 20, title="curve angle")
+        self.camera_angle = pygui.SlideBar(pg.Rect(800, 350, 150, 10), "inactive", 1, True, "s", True, 60, 1, 50, title="camera angle") # 本来は-がつく
+        self.red_range = pygui.SlideBar(pg.Rect(800, 400, 150, 10), "inactive", 1, True, "s", True, 30, 1, 4, title="red range")
+        self.curve_count = pygui.Text(pg.Rect(650, 450, 150, 10), "inactive", 1, True, "s", "curve_count")
+        self.first_catch_color_text = pygui.Text(pg.Rect(650, 500, 150, 10), "inactive", 1, True, "s", "first camera")
+        self.state_text = pygui.Text(pg.Rect(10, db.view.screen.get_height() - 20, 150, 10), "inactive", 1, True, "vs", "stop")
+        self.save_btn = pygui.Button(pg.Rect(840, 450, 52, 32), "inactive", 2, text="save")
+        self.load_btn = pygui.Button(pg.Rect(910, 450, 52, 32), "inactive", 2, text="load")
+        self.slider = [
+            self.backtime_slider, self.first_camera_slider, 
+            self.curve_angle, self.camera_angle, 
+            self.red_range, self.curve_count, 
+            self.first_catch_color_text, 
+            self.save_btn, self.load_btn,
+            self.state_text,
+            ]
     def handle_event(self, event):
         for s in self.slider:
             s.handle_event(event)
     def update(self):
-        for s in self.slider:
-            s.update()
-        if self.backtime_slider.get_change_value():
-            self.car.back_count = self.backtime_slider.value
-        if self.first_camera_slider.get_change_value():
-            self.car.first_camera_y = self.first_camera_slider.value
-        if self.curve_angle.get_change_value():
-            self.car.curve_angle = self.curve_angle.value
-        if self.camera_angle.get_change_value():
-            self.car.camera_angle = -1 * self.camera_angle.value
-        if self.red_range.get_change_value():
-            self.car.red_range = self.red_range.value
+        if self.sliders_visible:
+            for s in self.slider:
+                s.update()
+            if self.backtime_slider.get_change_value():
+                self.car.back_count = self.backtime_slider.value
+            if self.first_camera_slider.get_change_value():
+                self.car.first_camera_y = self.first_camera_slider.value
+            if self.curve_angle.get_change_value():
+                self.car.curve_angle = self.curve_angle.value
+            if self.camera_angle.get_change_value():
+                self.car.camera_angle = -1 * self.camera_angle.value
+            if self.red_range.get_change_value():
+                self.car.red_range = self.red_range.value
+            self.curve_count.common.text = "curve count " + str(self.car.curve_count)
+            self.first_catch_color_text.common.text = "found color posi " + str(self.car.first_catch_color)
 
-        if self.car.curve_count != 0:
-            self.curve_count.common.text = "curve count : " + str(self.car.curve_count)
-        self.first_catch_color_text.common.text = "first catch : " + str(self.car.first_catch_color)
+            if self.save_btn.clicked():
+                self.save()
+            if self.load_btn.clicked():
+                self.load()
         #--------------------------------------------------自動走行処理--------------------------------------------------
         # 走行RUN
         if self.run:
             if not self.car.Determined:
-                db.driver.car.x, db.driver.car.y, self.direction, db.driver.car.direction = db.driver.nav.DriverDirection() # 次の移動先とその方向
-                # 移動が終わったら実行する
-                if self.direction == -2:
-                    db.driver.nav.Reset()
-                    self.run = False # 処理終了
+                if db.driver.traffic.traffic_state(db.driver.car.x, db.driver.car.y, db.driver.car.direction) == "green":
+                    db.driver.car.x, db.driver.car.y, self.direction, db.driver.car.direction = db.driver.nav.DriverDirection() # 次の移動先とその方向
+                    # 移動が終わったら実行する
+                    if self.direction == -2:
+                        db.driver.nav.Reset()
+                        db.driver.goal.x = db.driver.goal.y = -1
+                        db.driver.can_edit = True
+                        self.run = False # 処理終了
+                    else:
+                        self.car.initial_Determined = True
                 else:
-                    self.car.initial_Determined = True
+                    pass
             self.car.update(self.direction,db.driver.img.array)
     def Run(self):
         error = db.driver.nav.MazeWaterValue() # プライオリティーインデックスを振り分ける
@@ -401,5 +445,34 @@ class DriverMap:
         db.driver.nav.MazeShortestRoute() # マップの最適ルートを検索する
         self.run = True
     def draw(self):
-        for s in self.slider:
-            s.draw()
+        if self.sliders_visible:
+            for s in self.slider:
+                s.draw()
+    def save(self):
+        path = "pydatabase_save.txt"
+        db.pysave.add("backtime", self.backtime_slider.value, path)
+        db.pysave.add("first camera", self.first_camera_slider.value, path)
+        db.pysave.add("curve angle", self.curve_angle.value, path)
+        db.pysave.add("camera angle", self.camera_angle.value, path)
+        db.pysave.add("red range", self.red_range.value, path)
+    def load(self):
+        path = "pydatabase_save.txt"
+        backtime = db.pysave.search("backtime", path)
+        self.car.back_count = int(backtime)
+        self.backtime_slider.set_value(int(backtime))
+
+        first_camera = db.pysave.search("first camera", path)
+        self.car.first_camera_y = int(first_camera)
+        self.first_camera_slider.set_value(int(first_camera))
+
+        curve_angle = db.pysave.search("curve angle", path)
+        self.car.curve_angle = int(curve_angle)
+        self.curve_angle.set_value(int(curve_angle))
+
+        camera_angle = db.pysave.search("camera angle", path)
+        self.car.camera_angle = int(camera_angle)
+        self.camera_angle.set_value(int(camera_angle))
+
+        red_range = db.pysave.search("red range", path)
+        self.car.red_range = int(red_range)
+        self.red_range.set_value(int(red_range))
