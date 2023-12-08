@@ -6,11 +6,11 @@ db = pydb.DataBase()
 # 多くのGUIItemに共通するClass
 class Common:
     """Commonクラスはitemに付属する、基本的な変数を集めた構造体です"""
-    def __init__(self, rect, color, layer, visible, fontsize, text = "", is_frame = False):
+    def __init__(self, rect, color, layer, visible, fontsize = "s", text = "", is_frame = False):
         self.rects = self.Rects(rect)
         self.color = color
-        self.layer = layer
-        self.visible = visible
+        self.layer = layer # layerは描写するlayerのインデックスを記入
+        self.visible = visible 
         self.fontsize = fontsize
         self.text = text
         self.is_frame = is_frame
@@ -54,9 +54,11 @@ class Timer:
         return False
     
     def reset(self, change_visible = True):
+        """タイマーを動作させるときまたは停止させるとき使います"""
         self.count.value = self.count.first
         self.visible = change_visible
     class Count:
+        """Countクラスはcountに関する、変数を保存したクラスです"""
         def __init__(self, increase, first):
             self.increase = increase
             self.first = first
@@ -67,6 +69,7 @@ class Timer:
             return self.value % goal == 0
 # Handle_event関数内で使用されるであろう関数
 class Handle:
+    """イベントハンドラにて使用される関数の集まり"""
     def click(self, event, rect, button_type = "left") -> bool:
         """button_typeはleft、center、rightまたはleft||right"""
         if event.type == pygame.MOUSEBUTTONDOWN:
@@ -110,6 +113,7 @@ class Handle:
         return event.key == pygame.K_BACKSPACE and event.type == pygame.KEYDOWN
 handle = Handle()
 class Square:
+    """スライダー専用"""
     def __init__(self,rect, color, layer, visible, fontsize, width):
         self.common = Common(rect, color, layer, visible, fontsize)
         self.width = width
@@ -180,12 +184,12 @@ class Button:
     def handle_event(self, event):
         if self.common.visible:
             if handle.click(event, self.common.rects.rect):
-                self.click = True
-                self.__click_timer.reset()
+                self.click = True # 物体がクリックされた
+                self.__click_timer.reset() # timerスタート
                 self.common.color = "active"
-            if handle.on_mouse(event, self.common.rects.rect):
+            if handle.on_mouse(event, self.common.rects.rect): # mouseが物体に触れているとき
                 self.common.color = "on_mouse"
-            elif not self.click:
+            elif not self.click: # mouseが物体に触れていない時かつクリック状態でなかったら
                 self.common.color = "inactive"
     def update(self):
         self.common.rects.update()
@@ -198,20 +202,24 @@ class Button:
             if self.common.is_frame:
                 db.view.layer.append(db.view.View("rect", self.common.fontsize, self.common.color, self.common.rects.rect, self.common.layer, self.common.text, 2))
     def clicked(self):
+        """オブジェクトがクリックされたらtrueを返します"""
         if self.click:
             self.click = False
             self.click_count += 1
             return True
         return False
     def clicked_count(self):
+        """物体のクリックされた回数を返します"""
         return self.click_count
 class ButtonSwitch:
+    """スイッチ型のボタンを生成します"""
     def __init__(self, rect, color, layer, visible, fontsize, text, is_frame):
         self.common = Common(rect, color, layer, visible, fontsize, text, is_frame)
         self.click = False
     def handle_event(self, event):
         if self.common.visible:
             if handle.click(event, self.common.rects.rect):
+                # オブジェクトがクリックされたらクリック状態を反転させます
                 self.click = not self.click
                 if self.click:
                     self.common.color = "active"
@@ -228,6 +236,7 @@ class ButtonSwitch:
             if self.common.is_frame:
                 db.view.layer.append(db.view.View("rect", self.common.fontsize, self.common.color, self.common.rects.rect, self.common.layer, self.common.text, 2))
     def clicked(self, change_visible_False = False):
+        """クリック状態を返します"""
         if change_visible_False:
             self.click = False
         return self.click
